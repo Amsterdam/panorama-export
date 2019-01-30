@@ -1,6 +1,6 @@
 # panorama-export
 
-Dockerfile and scripts to export the panorama database to CSV, GeoJSON
+Dockerfile and scripts to export the panorama database to CSV, GeoJSON, Shapefile and other file formats.
 
 First, build the Docker image:
 
