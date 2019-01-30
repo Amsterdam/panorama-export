@@ -1,0 +1,12 @@
+version: "3"
+services:
+  export:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    # ports:
+      # - "8182:8182"
+    volumes:
+      - "./output/:/mnt/output"
+      - "./scripts/:/mnt/scripts"
+      - "./test-data/:/mnt/test-data"
