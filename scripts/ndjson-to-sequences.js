@@ -5,11 +5,15 @@ const path = require('path')
 const H = require('highland')
 const turf = require('@turf/turf')
 
-const minuteMs = 60 * 1000
-const msThreshold = 60 * minuteMs // ten minutes
+if (!process.env['NODE_CONFIG_DIR']) {
+  process.env['NODE_CONFIG_DIR'] = path.join(__dirname, 'config')
+}
+const config = require('config')
+const sequencesConfig = config.get('sequences')
 
-const minDistance = 5
-const maxDistance = 75
+const msThreshold = sequencesConfig.msThreshold
+const minDistance = sequencesConfig.minDistance
+const maxDistance = sequencesConfig.maxDistance
 
 function round (num, decimals = 2) {
   const m = 10 ** decimals
@@ -24,8 +28,6 @@ multiLineString = []
 
 accMs = []
 accDistance = []
-
-// fs.createReadStream(argv._[0], 'utf8') : process.stdin
 
 H(process.stdin)
   .split()

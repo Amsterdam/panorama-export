@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@turf/turf": "^5.1.6",
+    "config": "^3.0.1",
     "highland": "^2.13.0",
     "pg": "^7.8.0",
     "pg-query-stream": "^2.0.0"

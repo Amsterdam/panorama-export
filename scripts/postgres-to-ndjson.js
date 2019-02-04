@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 
+const path = require('path')
 const H = require('highland')
 const { Client } = require('pg')
 const QueryStream = require('pg-query-stream')
 
-const client = new Client({
-  user: 'panorama',
-  host: 'localhost',
-  database: 'panorama',
-  password: 'insecure',
-  port: 5454
-})
+if (!process.env['NODE_CONFIG_DIR']) {
+  process.env['NODE_CONFIG_DIR'] = path.join(__dirname, 'config')
+}
+const config = require('config')
+const databaseConfig = config.get('database')
 
-// TODO: use new data model, with tags etc.
+const client = new Client(databaseConfig)
+
 const sql = `
   SELECT
     p.*, m.name AS mission_id, m.date AS mission_date,
@@ -38,12 +38,7 @@ async function run () {
         timestamp: row.timestamp,
         filename: row.filename,
         path: row.path,
-        distance: row.mission_distance,
-        tags: [
-          row.mission_type,
-          row.surface_type === 'L' ? 'land' : 'water',
-          row.mission_year
-        ]
+        tags: row.tags
       },
       geometry: JSON.parse(row.geojson)
     }))
