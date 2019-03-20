@@ -9,4 +9,3 @@ services:
     volumes:
       - "./output/:/mnt/output"
       - "./scripts/:/mnt/scripts"
-      - "./test-data/:/mnt/test-data"

@@ -11,7 +11,6 @@ if (!process.env['NODE_CONFIG_DIR']) {
 const config = require('config')
 const sequencesConfig = config.get('sequences')
 
-const msThreshold = sequencesConfig.msThreshold
 const minDistance = sequencesConfig.minDistance
 const maxDistance = sequencesConfig.maxDistance
 
@@ -20,81 +19,83 @@ function round (num, decimals = 2) {
   return Math.round(num * m) / m
 }
 
-let sequenceId = 0
-let lastPanorama
+function sequenceFirst (sequence) {
+  return sequence[0][0]
+}
 
-lineString = []
-multiLineString = []
+function sequenceLast (sequence) {
+  const section = sequence[sequence.length - 1]
+  return section[section.length - 1]
+}
 
-accMs = []
-accDistance = []
+function sequenceProperty (sequence, getProperty) {
+  return sequence.map((section) => section.map(getProperty))
+}
+
+let sequence = []
+let sequenceSection = []
 
 H(process.stdin)
   .split()
   .compact()
   .map(JSON.parse)
-  .map((panorama) => {
-    let sequence
-
-    let diffMs
+  .map((image) => {
+    let feature
     let distance
 
-    const date = new Date(panorama.data.timestamp)
+    if (sequenceSection.length) {
+      const lastImage = sequenceSection[sequenceSection.length - 1]
 
-    if (lastPanorama) {
-      diffMs = date.getTime() - new Date(lastPanorama.data.timestamp).getTime()
-      distance = round(turf.distance(panorama.geometry, lastPanorama.geometry, {
+      distance = round(turf.distance(image.geometry, lastImage.geometry, {
         units: 'meters'
       }))
 
-      accMs.push(diffMs)
-      accDistance.push(distance)
-    }
+      if (image.properties.sequenceId !== lastImage.properties.sequenceId) {
+        const filteredSequence = [...sequence, [...sequenceSection]]
+          .filter((section) => section.length > 2)
 
-    if (diffMs >= msThreshold && multiLineString.length) {
-      // console.error('new sequence found', panorama.data.missionId === lastPanorama.data.missionId)
-      // console.error(JSON.stringify(accMs), JSON.stringify(accDistance))
-      sequenceGeometry = {
-        type: 'MultiLineString',
-        coordinates: [...multiLineString, [...lineString]]
+        if  (filteredSequence.length) {
+          const sequenceGeometry = {
+            type: 'MultiLineString',
+            coordinates: sequenceProperty(filteredSequence, (image) => image.geometry.coordinates)
+          }
+
+          feature = {
+            type: 'Feature',
+            id: sequenceFirst(filteredSequence).properties.sequenceId,
+            properties: {
+              type: 'image-sequence',
+              tags: sequenceFirst(filteredSequence).properties.tags,
+              capturedAt: [
+                sequenceFirst(filteredSequence).properties.capturedAt,
+                sequenceLast(filteredSequence).properties.capturedAt,
+              ],
+              coordinateProperties: {
+                capturedAt: sequenceProperty(filteredSequence, (image) => image.properties.capturedAt),
+                imageId: sequenceProperty(filteredSequence, (image) => image.id)
+              }
+            },
+            geometry: sequenceGeometry
+          }
+        }
+
+        sequenceSection = []
+        sequence = []
       }
-
-      multiLineString = []
-      lineString = [panorama.geometry.coordinates]
-
-      sequence = {
-        sequenceId,
-        timestamp: panorama.data.timestamp,
-        // type: 'panorama-sequence',
-        // data: {
-        //   id: sequenceId
-        // },
-        geometry: sequenceGeometry
-      }
-
-      accMs = []
-      accDistance = []
-
-      sequenceId += 1
     }
-
-    // Store images along sequence, just like Mapillary
-    // does with coordinateProperties. See
-    // https://www.mapillary.com/developer/api-documentation/#the-sequence
-    // make this optional, and make two versions of data
-
-    // https://github.com/mapbox/polyline
-    // https://beta.observablehq.com/@jviide/monotone-cubic-interpolation
 
     if (distance >= minDistance && distance <= maxDistance) {
-      lineString.push(panorama.geometry.coordinates)
+      sequenceSection.push(image)
     } else if (distance > maxDistance) {
-      multiLineString = [...multiLineString, [...lineString]]
-      lineString = [panorama.geometry.coordinates]
+      sequence = [...sequence, [...sequenceSection]]
+      sequenceSection = []
     }
 
-    lastPanorama = panorama
-    return sequence
+    if (!sequenceSection.length) {
+      sequenceSection = [image]
+    }
+
+    return feature
   })
   .compact()
   .map(JSON.stringify)

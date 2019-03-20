@@ -16,12 +16,11 @@ const client = new Client(databaseConfig)
 const sql = `
   SELECT
     p.*, m.name AS mission_id, m.date AS mission_date,
-    ST_AsGeoJSON(_geolocation_2d) AS geojson
+    ST_AsGeoJSON(_geolocation_2d, 6) AS geojson
   FROM panoramas_panorama p
   JOIN panoramas_mission m
   ON substring(p.pano_id from 0 for 21) = m.name
-  ORDER BY timestamp;
-`
+  ORDER BY timestamp;`
 
 async function run () {
   await client.connect()
@@ -31,13 +30,12 @@ async function run () {
 
   const panoramas = H(stream)
     .map((row) => ({
+      type: 'Feature',
       id: row.pano_id,
-      type: 'panorama',
-      data: {
-        missionId: row.mission_id,
-        timestamp: row.timestamp,
-        filename: row.filename,
-        path: row.path,
+      properties: {
+        type: 'image',
+        sequenceId: row.mission_id,
+        capturedAt: row.timestamp,
         tags: row.tags
       },
       geometry: JSON.parse(row.geojson)

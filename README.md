@@ -1,6 +1,8 @@
 # panorama-export
 
-Dockerfile and scripts to export the panorama database to CSV, GeoJSON, Shapefile and other file formats.
+Dockerfile and scripts to export the panorama database to GeoJSON, vector tiles and other file formats.
+
+For a visulization of the resulting data, see [amsterdam.github.io/panorama-visualization](https://amsterdam.github.io/panorama-visualization). The source code of this visualization is also [available on GitHub](https://github.com/Amsterdam/panorama-visualization).
 
 First, build the Docker image:
 
@@ -15,7 +17,5 @@ If you want, you can run bash in the container like this:
 To export data from the database, run
 
     ./scripts/export.sh
-
-_Note: `export.sh` only works from inside the Docker container!_
 
 To change the database connection settings, you can edit the [configuration file](scripts/config/default.js).
